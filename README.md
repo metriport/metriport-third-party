@@ -15,7 +15,7 @@ Navigate to the specific package directory you need and follow its README for in
 ## Structure
 
 ```
-my_project-third-party/
+metriport-third-party/
 ├── packages/
 │   ├── ehr-canvas/
 ├── package.json
