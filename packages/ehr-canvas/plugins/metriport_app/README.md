@@ -20,6 +20,14 @@ Providers can have the information they need to stay up-to-date with their patie
 1. Schedule an Appointment for a patient in Canvas
 2. The Metriport Appointments Created Protocol will send a webhook to Metriport that will create a patient in the background and fetch their medical data for future use in the Metriport App
 
+### Patient Creation Workflow
+
+1. Create a new patient in Canvas
+2. Add or update the patient's address (typically done during initial patient setup)
+3. The Metriport Patient Created Protocol will automatically send a webhook to Metriport that will create the patient in the background and fetch their medical data for immediate availability in the Metriport App
+
+> **Note:** This workflow is triggered by `PATIENT_ADDRESS_CREATED` or `PATIENT_ADDRESS_UPDATED` events within 24 hours of patient creation, as Canvas does not provide enough information to trigger on `PATIENT_CREATED` events directly. This ensures patient data is synchronized when demographic information is complete.
+
 ### Installation
 
 Requirements:
