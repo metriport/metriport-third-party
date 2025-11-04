@@ -1,0 +1,20 @@
+{
+  "name": "metriport-third-party",
+  "version": "1.0.0",
+  "description": "",
+  "workspaces": [
+    "packages/*"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/metriport/metriport-third-party.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/metriport/metriport-third-party/issues"
+  },
+  "homepage": "https://github.com/metriport/metriport-third-party#readme"
+}
