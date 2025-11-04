@@ -1,4 +1,4 @@
-# My Project Third Party Plugins
+# Metriport Third Party Plugins
 
 Monorepo containing independent plugins and features for customer use.
 
