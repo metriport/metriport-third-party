@@ -6,7 +6,7 @@ Monorepo containing independent plugins and features for customer use.
 
 Each package is completely independent with its own installation and usage instructions:
 
-- [`packages/canvas`](./packages/canvas) - Python package for canvas functionality
+- [`packages/ehr-canvas`](./packages/ehr-canvas) - Python package for canvas functionality
 
 ## Usage
 
@@ -17,7 +17,7 @@ Navigate to the specific package directory you need and follow its README for in
 ```
 my_project-third-party/
 ├── packages/
-│   ├── canvas/          # Python package
+│   ├── ehr-canvas/
 ├── package.json
 └── README.md
 ```
