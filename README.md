@@ -1,4 +1,4 @@
-# My Project Third Party Plugins
+# Metriport Third Party Plugins
 
 Monorepo containing independent plugins and features for customer use.
 
@@ -15,7 +15,7 @@ Navigate to the specific package directory you need and follow its README for in
 ## Structure
 
 ```
-my_project-third-party/
+metriport-third-party/
 ├── packages/
 │   ├── ehr-canvas/
 ├── package.json
