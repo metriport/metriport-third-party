@@ -17,8 +17,18 @@ METRIPORT_TOKEN_SECRET = "METRIPORT_WEBHOOK_TOKEN"
 # which triggers these address events. By listening for these events and checking if the patient
 # was recently created (within the last day), we can effectively capture new patient creation
 # and ensure we don't miss any patients that should be synchronized with Metriport.
+
+
+
 class PatientAddressCreatedProtocol(BaseProtocol):
-    """Handle when an address is added for a patient."""
+    """
+    Handle when an address is initially created for a patient.
+    
+    This is the primary trigger for capturing new patient creation in Canvas.
+    Since Canvas doesn't provide enough data for PATIENT_CREATED events, we use
+    address creation as a proxy - addresses are typically added shortly after
+    a patient is created.
+    """
     
     RESPONDS_TO = EventType.Name(EventType.PATIENT_ADDRESS_CREATED)
     
@@ -38,7 +48,14 @@ class PatientAddressCreatedProtocol(BaseProtocol):
 
 
 class PatientAddressUpdatedProtocol(BaseProtocol):
-    """Handle when a patient's address is updated."""
+    """
+    Handle when a patient's address is updated.
+    
+    This serves as a fallback trigger for new patient creation. If the initial
+    address creation event failed (e.g., due to timeout or other errors), we can
+    still capture the patient when their address is later updated, as long as
+    they were created within the last day.
+    """
     
     RESPONDS_TO = EventType.Name(EventType.PATIENT_ADDRESS_UPDATED)
     
