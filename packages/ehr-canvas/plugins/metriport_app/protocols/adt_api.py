@@ -43,6 +43,7 @@ class AdtAPIProtocol(SimpleAPIRoute):
                 message_datetime=message_datetime,
                 information_source=body.get("information_source"),
                 facility_name=body.get("facility_name"),
+                raw_message=body.get("raw_message"),
             )
 
             return [
