@@ -1,6 +1,6 @@
 {
   "sdk_version": "0.21.0",
-  "plugin_version": "0.0.4",
+  "plugin_version": "0.0.5",
   "name": "metriport_app",
   "description": "Metriport App",
   "origins": {
@@ -43,6 +43,15 @@
           "read": [],
           "write": []
         }
+      },
+      {
+        "class": "metriport_app.protocols.adt_api:AdtAPIProtocol",
+        "description": "A protocol that calls a custom API endpoint.",
+        "data_access": {
+          "event": "",
+          "read": [],
+          "write": []
+        }
       }
     ],
     "commands": [],
@@ -50,7 +59,11 @@
     "effects": [],
     "views": []
   },
-  "secrets": ["METRIPORT_MODAL_TOKEN", "METRIPORT_WEBHOOK_TOKEN"],
+  "secrets": [
+    "METRIPORT_MODAL_TOKEN",
+    "METRIPORT_WEBHOOK_TOKEN",
+    "METRIPORT_PLUGIN_TOKEN"
+  ],
   "tags": {},
   "references": [],
   "license": "",
