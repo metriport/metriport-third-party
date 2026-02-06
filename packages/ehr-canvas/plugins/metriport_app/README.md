@@ -36,7 +36,7 @@ Requirements:
   - Please reach out to [Canvas customer success](mailto:customersuccess@canvasmedical.com) or your Canvas representative to initiate this process
 - Metriport Modal Token and Webhook Token
   - Please reach out to [Metriport support](mailto:support@metriport.com) to get a Modal Token and Webhook Token if not already provided
-- (Optional) Metriport Plugin Token - if you like to receive ADT events for specific patient
+- (Optional) Metriport Plugin Token - if you'd like to receive ADT events for specific patient
   - Please reach out to [Metriport support](mailto:support@metriport.com) to get a Plugin Token if not already provided
 
 Steps:
