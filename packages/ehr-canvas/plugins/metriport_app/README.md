@@ -28,6 +28,12 @@ Providers can have the information they need to stay up-to-date with their patie
 
 > **Note:** This workflow is triggered by `PATIENT_ADDRESS_CREATED` or `PATIENT_ADDRESS_UPDATED` events within 24 hours of patient creation, as Canvas does not provide enough information to trigger on `PATIENT_CREATED` events directly. This ensures patient data is synchronized when demographic information is complete.
 
+### Patient Demographics Updated Workflow
+
+1. Update a patient's demographics in Canvas (e.g. name, date of birth, gender)
+2. The Metriport Patient Demographics Updated Protocol sends a webhook to Metriport so the patient record can be kept in sync
+3. Metriport updates the patient's demographics and fetches fresh medical data for immediate availability in the Metriport App
+
 ### Installation
 
 Requirements:

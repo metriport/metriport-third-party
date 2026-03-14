@@ -1,6 +1,6 @@
 {
   "sdk_version": "0.21.0",
-  "plugin_version": "0.0.5",
+  "plugin_version": "0.0.6",
   "name": "metriport_app",
   "description": "Metriport App",
   "origins": {
@@ -38,6 +38,15 @@
       {
         "class": "metriport_app.protocols.patients_created:PatientAddressUpdatedProtocol",
         "description": "Create patients asynchronously when new patients' addresses are updated in your Canvas instance.",
+        "data_access": {
+          "event": "",
+          "read": [],
+          "write": []
+        }
+      },
+      {
+        "class": "metriport_app.protocols.patient_demographics_updated:PatientDemographicsUpdatedProtocol",
+        "description": "Update patient and fetch fresh data when demographics are updated in your Canvas instance.",
         "data_access": {
           "event": "",
           "read": [],
