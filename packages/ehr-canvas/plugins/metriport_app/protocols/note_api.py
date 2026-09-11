@@ -1,10 +1,13 @@
 from datetime import datetime
 from http import HTTPStatus
-from typing import Any, Literal
+from typing import Any, Literal, TypedDict
 
 from canvas_sdk.effects import Effect
 from canvas_sdk.effects.simple_api import JSONResponse, Response
-from canvas_sdk.handlers.simple_api import BearerCredentials, SimpleAPIRoute
+from canvas_sdk.handlers.simple_api import (
+    BearerCredentials,
+    SimpleAPIRoute,
+)
 from canvas_sdk.v1.data.command import Command
 from canvas_sdk.v1.data.note import Note, NoteStateChangeEvent, NoteStates
 from django.db.models import Prefetch
@@ -22,7 +25,7 @@ MAX_LIMIT = 1000
 EXCLUDED_NOTE_TITLE = "Metriport Chart Import"
 
 class NoteAPIProtocol(SimpleAPIRoute):
-    """A protocol that returns a patient's notes with their command attributes."""
+    """A protocol that returns a patient's notes with the note's associated command(s)."""
 
     PATH = "/routes/notes"
 
@@ -139,24 +142,48 @@ def _related_id(related: Any) -> str | None:
     return str(related.id)
 
 
+class NoteBodyLine(TypedDict):
+    type: Literal["text", "command"]
+    value: Any
+
+
+def _note_texts(body: list[dict[str, Any]]) -> list[str]:
+    texts: list[str] = []
+    for raw in body:
+        line_type = raw.get("type")
+        if line_type not in ("text", "command"):
+            continue
+        line: NoteBodyLine = {"type": line_type, "value": raw.get("value")}
+        value = line["value"]
+        if line["type"] == "text" and isinstance(value, str):
+            texts.append(value)
+
+    # Canvas adds several blank lines by default, strip out pre/post blank lines
+    start = 0
+    end = len(texts)
+    while start < end and texts[start] == "":
+        start += 1
+    while end > start and texts[end - 1] == "":
+        end -= 1
+    return texts[start:end]
+
+
 class APIModel(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
 class Originator(APIModel):
     id: str
-    type: Literal["staff", "patient"]
+    type: Literal["staff"]
 
     @classmethod
     def from_originator(cls, originator: Any) -> "Originator | None":
         if originator is None:
             return None
+        # Restrict to staff-only
         staff_id = _related_id(getattr(originator, "staff", None))
         if staff_id is not None:
             return cls(id=staff_id, type="staff")
-        patient_id = _related_id(getattr(originator, "patient", None))
-        if patient_id is not None:
-            return cls(id=patient_id, type="patient")
         return None
 
 
@@ -263,6 +290,7 @@ class NoteResponse(APIModel):
     related_data: Any = None
     state_history: list[NoteStateEvent] = Field(default_factory=list)
     commands: list[NoteCommand] = Field(default_factory=list)
+    texts: list[str] = Field(default_factory=list)
 
     @classmethod
     def from_note(cls, note: Note) -> "NoteResponse":
@@ -291,6 +319,7 @@ class NoteResponse(APIModel):
                 NoteCommand.from_command(command)
                 for command in getattr(note, "matching_commands", [])
             ],
+            texts=_note_texts(note.body),
         )
 
 
