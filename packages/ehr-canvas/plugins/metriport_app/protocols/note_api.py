@@ -46,13 +46,10 @@ class NoteAPIProtocol(SimpleAPIRoute):
             commands_qs = Command.objects.select_related(
                 "originator",
                 "originator__staff",
-                "originator__patient",
                 "committer",
                 "committer__staff",
-                "committer__patient",
                 "entered_in_error",
                 "entered_in_error__staff",
-                "entered_in_error__patient",
             ).order_by("created", "dbid")
             if params.command_type:
                 commands_qs = commands_qs.filter(schema_key__in=params.command_type)
@@ -68,7 +65,6 @@ class NoteAPIProtocol(SimpleAPIRoute):
                     "note_type_version",
                     "originator",
                     "originator__staff",
-                    "originator__patient",
                     "encounter",
                     "location",
                 )
@@ -78,7 +74,6 @@ class NoteAPIProtocol(SimpleAPIRoute):
                         queryset=NoteStateChangeEvent.objects.select_related(
                             "originator",
                             "originator__staff",
-                            "originator__patient",
                         ),
                         to_attr="matching_state_events",
                     ),
@@ -142,6 +137,12 @@ def _related_id(related: Any) -> str | None:
     return str(related.id)
 
 
+def _staff_originator_id(originator: Any) -> str | None:
+    if originator is None:
+        return None
+    return _related_id(getattr(originator, "staff", None))
+
+
 class NoteBodyLine(TypedDict):
     type: Literal["text", "command"]
     value: Any
@@ -170,21 +171,6 @@ def _note_texts(body: list[dict[str, Any]]) -> list[str]:
 
 class APIModel(BaseModel):
     model_config = ConfigDict(extra="ignore")
-
-
-class Originator(APIModel):
-    id: str
-    type: Literal["staff"]
-
-    @classmethod
-    def from_originator(cls, originator: Any) -> "Originator | None":
-        if originator is None:
-            return None
-        # Restrict to staff-only
-        staff_id = _related_id(getattr(originator, "staff", None))
-        if staff_id is not None:
-            return cls(id=staff_id, type="staff")
-        return None
 
 
 class NoteType(APIModel):
@@ -227,7 +213,7 @@ class NoteStateEvent(APIModel):
     id: str | None = None
     state: NoteStates
     created: datetime | None = None
-    originator: Originator | None = None
+    originator_id: str | None = None
 
     @classmethod
     def from_event(cls, event: NoteStateChangeEvent) -> "NoteStateEvent":
@@ -235,7 +221,7 @@ class NoteStateEvent(APIModel):
             id=_id(event.id),
             state=NoteStates(event.state),
             created=event.created,
-            originator=Originator.from_originator(event.originator),
+            originator_id=_staff_originator_id(event.originator),
         )
 
 
@@ -249,9 +235,9 @@ class NoteCommand(APIModel):
     modified: datetime | None = None
     origination_source: str | None = None
     custom_html: str | None = None
-    originator: Originator | None = None
-    committer: Originator | None = None
-    entered_in_error: Originator | None = None
+    originator_id: str | None = None
+    committer_id: str | None = None
+    entered_in_error_id: str | None = None
 
     @classmethod
     def from_command(cls, command: Command) -> "NoteCommand":
@@ -265,9 +251,9 @@ class NoteCommand(APIModel):
             modified=command.modified,
             origination_source=command.origination_source,
             custom_html=_str(command.custom_html),
-            originator=Originator.from_originator(command.originator),
-            committer=Originator.from_originator(command.committer),
-            entered_in_error=Originator.from_originator(command.entered_in_error),
+            originator_id=_staff_originator_id(command.originator),
+            committer_id=_staff_originator_id(command.committer),
+            entered_in_error_id=_staff_originator_id(command.entered_in_error),
         )
 
 
@@ -285,7 +271,7 @@ class NoteResponse(APIModel):
     last_modified_by_staff_id: str | None = None
     location_id: str | None = None
     encounter_id: str | None = None
-    originator: Originator | None = None
+    originator_id: str | None = None
     note_type: NoteType | None = None
     related_data: Any = None
     state_history: list[NoteStateEvent] = Field(default_factory=list)
@@ -308,7 +294,7 @@ class NoteResponse(APIModel):
             last_modified_by_staff_id=_related_id(note.last_modified_by_staff),
             location_id=_related_id(note.location),
             encounter_id=_related_id(getattr(note, "encounter", None)),
-            originator=Originator.from_originator(note.originator),
+            originator_id=_staff_originator_id(note.originator),
             note_type=NoteType.from_note_type(note.note_type_version),
             related_data=note.related_data or None,
             state_history=[
