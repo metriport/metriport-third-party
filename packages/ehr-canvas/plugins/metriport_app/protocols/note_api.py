@@ -1,22 +1,20 @@
-from http import HTTPStatus
 from datetime import datetime
+from http import HTTPStatus
 from typing import Any, Literal
-from logger import log
 
+from canvas_sdk.effects import Effect
+from canvas_sdk.effects.simple_api import JSONResponse, Response
+from canvas_sdk.handlers.simple_api import BearerCredentials, SimpleAPIRoute
+from canvas_sdk.v1.data.command import Command
+from canvas_sdk.v1.data.note import Note, NoteStateChangeEvent, NoteStates
 from django.db.models import Prefetch
+from logger import log
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
     ValidationError,
 )
-
-from canvas_sdk.effects import Effect
-from canvas_sdk.effects.simple_api import JSONResponse, Response
-from canvas_sdk.handlers.simple_api import BearerCredentials, SimpleAPIRoute
-from canvas_sdk.v1.data.note import Note, NoteStates, NoteStateChangeEvent
-from canvas_sdk.v1.data.command import Command
-
 
 METRIPORT_PLUGIN_TOKEN = "METRIPORT_PLUGIN_TOKEN"
 DEFAULT_LIMIT = 100
@@ -79,6 +77,7 @@ class NoteAPIProtocol(SimpleAPIRoute):
                             "originator__staff",
                             "originator__patient",
                         ),
+                        to_attr="matching_state_events",
                     ),
                     Prefetch("commands", queryset=commands_qs, to_attr="matching_commands"),
                 )
@@ -134,24 +133,31 @@ def _str(value: Any) -> str | None:
     return text if text != "" else None
 
 
+def _related_id(related: Any) -> str | None:
+    if related is None:
+        return None
+    return str(related.id)
+
+
 class APIModel(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
 class Originator(APIModel):
     id: str
-    type: Literal["staff", "patient"] | None = None
+    type: Literal["staff", "patient"]
 
     @classmethod
     def from_originator(cls, originator: Any) -> "Originator | None":
         if originator is None:
             return None
-        staff = getattr(originator, "staff", None)
-        patient = getattr(originator, "patient", None)
-        return cls(
-            id=_id(getattr(staff, "id", getattr(patient, "id", None))),
-            type="staff" if staff is not None else ("patient" if patient is not None else None),
-        )
+        staff_id = _related_id(getattr(originator, "staff", None))
+        if staff_id is not None:
+            return cls(id=staff_id, type="staff")
+        patient_id = _related_id(getattr(originator, "patient", None))
+        if patient_id is not None:
+            return cls(id=patient_id, type="patient")
+        return None
 
 
 class NoteType(APIModel):
@@ -174,19 +180,19 @@ class NoteType(APIModel):
         if note_type is None:
             return None
         return cls(
-            id=_id(getattr(note_type, "id", None)),
-            name=getattr(note_type, "name", None),
-            display=getattr(note_type, "display", None),
-            code=getattr(note_type, "code", None),
-            system=getattr(note_type, "system", None),
-            version=_str(getattr(note_type, "version", None)),
-            category=_str(getattr(note_type, "category", None)),
-            is_telehealth=getattr(note_type, "is_telehealth", None),
-            is_billable=getattr(note_type, "is_billable", None),
-            is_scheduleable=getattr(note_type, "is_scheduleable", None),
-            is_patient_required=getattr(note_type, "is_patient_required", None),
-            default_place_of_service=_str(getattr(note_type, "default_place_of_service", None)),
-            unique_identifier=_id(getattr(note_type, "unique_identifier", None)),
+            id=_id(note_type.id),
+            name=note_type.name,
+            display=note_type.display,
+            code=note_type.code,
+            system=note_type.system,
+            version=_str(note_type.version),
+            category=_str(note_type.category),
+            is_telehealth=note_type.is_telehealth,
+            is_billable=note_type.is_billable,
+            is_scheduleable=note_type.is_scheduleable,
+            is_patient_required=note_type.is_patient_required,
+            default_place_of_service=_str(note_type.default_place_of_service),
+            unique_identifier=_id(note_type.unique_identifier),
         )
 
 
@@ -199,10 +205,10 @@ class NoteStateEvent(APIModel):
     @classmethod
     def from_event(cls, event: NoteStateChangeEvent) -> "NoteStateEvent":
         return cls(
-            id=_id(getattr(event, "id", None)),
+            id=_id(event.id),
             state=NoteStates(event.state),
-            created=getattr(event, "created", None),
-            originator=Originator.from_originator(getattr(event, "originator", None)),
+            created=event.created,
+            originator=Originator.from_originator(event.originator),
         )
 
 
@@ -224,17 +230,17 @@ class NoteCommand(APIModel):
     def from_command(cls, command: Command) -> "NoteCommand":
         return cls(
             id=str(command.id),
-            dbid=getattr(command, "dbid", None),
-            schema_key=getattr(command, "schema_key", None),
-            state=getattr(command, "state", None),
-            data=getattr(command, "data", None),
-            created=getattr(command, "created", None),
-            modified=getattr(command, "modified", None),
-            origination_source=getattr(command, "origination_source", None),
-            custom_html=_str(getattr(command, "custom_html", None)),
-            originator=Originator.from_originator(getattr(command, "originator", None)),
-            committer=Originator.from_originator(getattr(command, "committer", None)),
-            entered_in_error=Originator.from_originator(getattr(command, "entered_in_error", None)),
+            dbid=command.dbid,
+            schema_key=command.schema_key,
+            state=command.state,
+            data=command.data,
+            created=command.created,
+            modified=command.modified,
+            origination_source=command.origination_source,
+            custom_html=_str(command.custom_html),
+            originator=Originator.from_originator(command.originator),
+            committer=Originator.from_originator(command.committer),
+            entered_in_error=Originator.from_originator(command.entered_in_error),
         )
 
 
@@ -260,30 +266,26 @@ class NoteResponse(APIModel):
 
     @classmethod
     def from_note(cls, note: Note) -> "NoteResponse":
-        patient = getattr(note, "patient", None)
         return cls(
             id=str(note.id),
-            dbid=getattr(note, "dbid", None),
-            title=getattr(note, "title", None),
-            created=getattr(note, "created", None),
-            modified=getattr(note, "modified", None),
-            datetime_of_service=getattr(note, "datetime_of_service", None),
-            place_of_service=_str(getattr(note, "place_of_service", None)),
-            patient_id=_id(getattr(patient, "id", None)),
-            provider_id=_id(getattr(getattr(note, "provider", None), "id", None)),
-            supervising_provider_id=_id(
-                getattr(getattr(note, "supervising_provider", None), "id", None)
-            ),
-            last_modified_by_staff_id=_id(
-                getattr(getattr(note, "last_modified_by_staff", None), "id", None)
-            ),
-            location_id=_id(getattr(getattr(note, "location", None), "id", None)),
-            encounter_id=_id(getattr(getattr(note, "encounter", None), "id", None)),
-            originator=Originator.from_originator(getattr(note, "originator", None)),
-            note_type=NoteType.from_note_type(getattr(note, "note_type_version", None)),
-            related_data=getattr(note, "related_data", None) or None,
+            dbid=note.dbid,
+            title=note.title,
+            created=note.created,
+            modified=note.modified,
+            datetime_of_service=note.datetime_of_service,
+            place_of_service=_str(note.place_of_service),
+            patient_id=_related_id(note.patient),
+            provider_id=_related_id(note.provider),
+            supervising_provider_id=_related_id(note.supervising_provider),
+            last_modified_by_staff_id=_related_id(note.last_modified_by_staff),
+            location_id=_related_id(note.location),
+            encounter_id=_related_id(getattr(note, "encounter", None)),
+            originator=Originator.from_originator(note.originator),
+            note_type=NoteType.from_note_type(note.note_type_version),
+            related_data=note.related_data or None,
             state_history=[
-                NoteStateEvent.from_event(event) for event in note.state_history.all()
+                NoteStateEvent.from_event(event)
+                for event in getattr(note, "matching_state_events", [])
             ],
             commands=[
                 NoteCommand.from_command(command)
@@ -381,4 +383,3 @@ def first_validation_error(error: ValidationError) -> str:
 
 def _bad_request(message: str) -> Response:
     return JSONResponse({"error": message}, status_code=HTTPStatus.BAD_REQUEST)
-
