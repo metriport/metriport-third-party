@@ -1,6 +1,6 @@
 {
-  "sdk_version": "0.21.0",
-  "plugin_version": "0.0.6",
+  "sdk_version": "0.225.0",
+  "plugin_version": "0.0.7",
   "name": "metriport_app",
   "description": "Metriport App",
   "origins": {
@@ -56,6 +56,15 @@
       {
         "class": "metriport_app.protocols.adt_api:AdtAPIProtocol",
         "description": "A protocol that calls a custom API endpoint.",
+        "data_access": {
+          "event": "",
+          "read": [],
+          "write": []
+        }
+      },
+      {
+        "class": "metriport_app.protocols.note_api:NoteAPIProtocol",
+        "description": "Returns a patient's notes with command attributes.",
         "data_access": {
           "event": "",
           "read": [],
